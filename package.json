@@ -1,11 +1,13 @@
 {
   "name": "jss-umbrella",
-  "version": "1.0.3",
+  "version": "1.0.6",
   "main": "umbrella.js",
   "bin": {
     "umbrella": "umbrella.js"
   },
-  "logo": { "url": "https://user-images.githubusercontent.com/6793205/57978516-853d5c80-7a0f-11e9-9253-92bbb58c137a.png" },
+  "logo": {
+    "url": "https://user-images.githubusercontent.com/6793205/57978516-853d5c80-7a0f-11e9-9253-92bbb58c137a.png"
+  },
   "homepage": "https://github.com/macaw-interactive/umbrella-for-sitecore-jss",
   "bugs": {
     "url": "https://github.com/macaw-interactive/umbrella-for-sitecore-jss/issues",
@@ -17,8 +19,10 @@
   },
   "description": "Umbrella for Sitecore JSS is a utility that synchronizes items from your Sitecore JSS to your local JSS development environment",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "plop": "plop"
+    "test": "jest --verbose --coverage --coverageDirectory lcov",
+    "plop": "plop",
+    "clean": "if exist dist ( rd /S /Q dist)",
+    "updateLink": "npm unlink && npm run clean && npm rm my-lib -g && npm link"
   },
   "keywords": [
     "sitecore",
@@ -26,6 +30,15 @@
     "javascript services",
     "jss"
   ],
+  "jest": {
+    "coverageReporters": [
+      "lcov",
+      "text"
+    ],
+    "reporters": [
+      "default"
+    ]
+  },
   "author": {
     "name": "Gary Wenneker",
     "email": "gary@wenneker.org",
@@ -41,5 +54,8 @@
     "caporal": "1.2.0",
     "plop": "2.3.0",
     "node-plop": "0.18.0"
+  },
+  "devDependencies": {
+    "jest": "24.8.0"
   }
 }

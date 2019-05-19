@@ -8,8 +8,10 @@ const fs = require('fs');
 const shell = require('shelljs');
 const chalk = require('chalk');
 const prog = require('caporal');
-const crypto = require('crypto');
 const nodePlop = require('node-plop');
+const Utils = require("./utils.js");
+const utils = new Utils();
+
 
 let scjssconfig = path.resolve(process.cwd(), `./scjssconfig.json`);
 let routeconfig = path.resolve(process.cwd(), `./routeconfig.json`);
@@ -20,14 +22,14 @@ if (fs.existsSync(scjssconfig)) {
     config = require(scjssconfig);
 } else {
     console.log(chalk `{red ERROR: scjssconfig.json not found.}`);
-    return;
+    process.exit();
 }
 
 if (fs.existsSync(routeconfig)) {
     routes = require(routeconfig);
 } else {
     console.log(chalk `{red ERROR: routeconfig.json not found.}`);
-    return;
+    process.exit();
 }
 
 const CommonFieldTypes = {
@@ -57,7 +59,6 @@ const getUmbrella = (ext, generator) => {
     // load an instance of plop from a plopfile
     var umbrellaScriptDir = path.resolve(__dirname, `umbrella`);
     // get the template directory, either the JS or TypeScript template folder
-    var templateDir = path.resolve(__dirname, `umbrella/${extension}`);
     const plop = nodePlop(`${umbrellaScriptDir}/plopfile.js`);
     // get a generator by name
     return plop.getGenerator(generator);
@@ -69,7 +70,7 @@ const getMetaData = () => {
             json: true
         }, (err, res, body) => {
             if (err) {
-                return console.log(chalk `{red -error-${err}}`);
+                console.log(chalk `{red -error-${err}}`);
                 reject(err);
             }
             if (body && body.sitecore && body.sitecore.context) {
@@ -82,46 +83,15 @@ const getMetaData = () => {
     })
 
 }
-const toBase64 = (text) => {
-    if (!text) return null;
-    let buff = new Buffer(text);
-    return buff.toString('base64');
-}
-const fromBase64 = (text) => {
-    if (!text) return null;
-    let buff = new Buffer(text, 'base64');
-    return buff.toString('ascii');
-}
-const getHashFromText = (value) => {
-    if (!value) return '';
-    var hash = crypto.createHash('sha1');
-    hash.setEncoding('hex');
-    hash.write(value);
-    hash.end();
-    return hash.read();
-};
-const getHashFromFile = (path) => {
-    var fileContent;
-    return new Promise((resolve, reject) => {
-        try {
-            fileContent = fs.readFileSync(path, {
-                encoding: 'base64'
-            });
-        } catch (e) {
-            reject('FNF');
-        }
-        resolve(fileContent);
-    });
-};
 const getRouteNames = (route) => {
     let arr = [];
-    for (lang of route.lang) {
-        arr.push(`${route.path} - ${route.lang}`);
+    for (let lang of route.lang) {
+        arr.push(`${route.path} - ${lang}`);
     }
     if (route.routes) {
-        for (subroute of route.routes) {
+        for (let subroute of route.routes) {
             let arr2 = getRouteNames(subroute);
-            for (sr of arr2) {
+            for (let sr of arr2) {
                 arr.push(sr);
             }
         }
@@ -137,16 +107,19 @@ const saveFile = (e) => {
         dataPath,
         mediaPath
     );
-    let mediaDir = outputFilePath.replace(`\\${e.fileName}`, '');
-    if (!fs.existsSync(mediaDir)) {
-        shell.mkdir('-p', mediaDir);
+    try {
+        let mediaDir = outputFilePath.replace(`\\${e.fileName}`, '');
+        if (!fs.existsSync(mediaDir)) {
+            shell.mkdir('-p', mediaDir);
+        }
+    } catch (e) {
     }
-    //console.log(chalk `{white.bold saving to ${mediaDir} for ${outputFilePath}}`)
+
     if (!dryrun) {
-        if (fs.existsSync(outputFilePath)) {            
-            getHashFromFile(outputFilePath).then((hash) => {
-                let streamHash = getHashFromText(base64File);
-                let fileHash = getHashFromText(hash);
+        if (fs.existsSync(outputFilePath)) {
+            utils.getHashFromFile(outputFilePath).then((hash) => {
+                let streamHash = utils.getHashFromText(base64File);
+                let fileHash = utils.getHashFromText(hash);
                 if (streamHash === fileHash) {
                     console.log(chalk `{gray skipped ${e.fileName}: same version.}`);
                 } else {
@@ -156,18 +129,18 @@ const saveFile = (e) => {
                 console.log(chalk `{magentaBright DAMN: ${e}}`);
             });
         } else {
-            writeBase64File(outputFilePath, e.fileName, base64File);            
+            writeBase64File(outputFilePath, e.fileName, base64File);
         }
     } else {
-        getHashFromFile(outputFilePath).then((hash) => {
-            let streamHash = getHashFromText(base64File);
-            let fileHash = getHashFromText(hash);
+        utils.getHashFromFile(outputFilePath).then((hash) => {
+            let streamHash = utils.getHashFromText(base64File);
+            let fileHash = utils.getHashFromText(hash);
             if (streamHash === fileHash) {
                 // do nothing
             } else {
                 console.log(chalk `{magentaBright Dry run. Skipping file ${e.fileName}}`);
             }
-        }).catch((e) => {});;
+        }).catch((e) => {});
     }
 };
 const writeBase64File = (outputFilePath, fileName, base64File) => {
@@ -183,12 +156,7 @@ const processFields = (e) => {
 
         if (e[p]) {
             if (Array.isArray(e[p])) {
-                let arr = [];
-                for (ref of e[p]) {
-                    arr.push({
-                        id: ref.id
-                    });
-                }
+                // do nothing
             } else {
                 // item must have a value
                 if (e[p].value) {
@@ -251,9 +219,9 @@ const processComponent = (e) => {
         if (c.fields && c.fields.data && c.fields.data.datasource) {
             let fields = {};
             // get datasource fields props
-            for (prop in c.fields.data.datasource) {
+            for (let prop in c.fields.data.datasource) {
                 if (prop !== 'id' && prop !== 'name') {
-                    for (fieldprop in c.fields.data.datasource[prop]) {
+                    for (let fieldprop in c.fields.data.datasource[prop]) {
                         if (typeof c.fields.data.datasource[prop][fieldprop] !== 'object') {
                             if (fieldprop === 'value') {
                                 fields[prop] = c.fields.data.datasource[prop][fieldprop];
@@ -298,7 +266,7 @@ const processTemplateManifests = (e) => {
     getMetaData().then(data => {
         if (data) {
             console.log(chalk `{blue Processing metadata for} {yellowBright templates}`);
-            for (template of data.templates) {
+            for (let template of data.templates) {
                 scaffoldTemplateManifest(template);
             }
             if (dryrun) {
@@ -316,7 +284,7 @@ const processComponentManifests = (e) => {
     getMetaData().then(data => {
         if (data) {
             console.log(chalk `{blue Processing metadata for} {yellowBright components}`);
-            for (component of data.renderings) {
+            for (let component of data.renderings) {
                 scaffoldComponentManifest(component);
             }
             if (dryrun) {
@@ -340,7 +308,7 @@ function scaffoldTemplateManifest(template) {
     if (!template || !template.fields) {
         return '';
     }
-    for (field of template.fields) {
+    for (let field of template.fields) {
         if (!field.fromModel) {
             if (CommonFieldTypes[field.type]) {
                 icon = "applicationsv2/32x32/document_plain_yellow.png";
@@ -353,6 +321,7 @@ function scaffoldTemplateManifest(template) {
     }
     // run all the generator actions using the data specified
     getUmbrella(extension, 'template').runActions({
+        template: 'template',
         cwd: cwd,
         dryrun: dryrun,
         extension: extension,
@@ -368,16 +337,18 @@ function scaffoldPlaceholdersManifest(placeholders) {
     // process values
     if (placeholders.length === 0) return;
     let result = ``;
-    for (placeholder of placeholders) {
+    for (let placeholder of placeholders) {
         result += `\t{ name: "${placeholder.name}", displayName: "${placeholder.displayName}", id: "${placeholder.id}" },\r`;
     }
     // run all the generator actions using the data specified
     getUmbrella(extension, 'placeholders').runActions({
+        template: 'placeholders',
         cwd: cwd,
         dryrun: dryrun,
         extension: extension,
-        placeholders: result
-    }).then(function (results) {}).catch((e) => {});;
+        placeholders: result,
+        name: 'placeholders',
+    }).then(function (results) {}).catch((e) => {});
 }
 
 function scaffoldComponentManifest(component) {
@@ -387,15 +358,16 @@ function scaffoldComponentManifest(component) {
     if (!component || !component.fields) {
         return '';
     }
-    for (field of component.fields) {
+    for (let field of component.fields) {
         fields += `\t\t\t{ id: "${field.id}", name: "${field.name}", type: ${field.type} },\n`;
     }
 
-    for (placeholder of component.placeholders) {
+    for (let placeholder of component.placeholders) {
         placeholders += `\t\t\t"${placeholder.split('|')[0]}", // ${placeholder.split('|')[1]} \n`;
     }
     // run all the generator actions using the data specified
     getUmbrella(extension, 'component').runActions({
+        template: 'component',
         cwd: cwd,
         dryrun: dryrun,
         extension: extension,
@@ -405,7 +377,7 @@ function scaffoldComponentManifest(component) {
         displayName: component.displayName,
         fields: fields,
         placeholders: placeholders
-    }).then(function (results) {}).catch((e) => {});;
+    }).then(function (results) {}).catch((e) => {});
 }
 /*
   ACTION SCRIPT
@@ -428,13 +400,11 @@ function sync() {
 
                 dryrun ?
                     console.log(chalk `{magentaBright Dry run. Skipped saving files. }`) :
-                    console.log(chalk `{blue Ready processing content. }`);
+                    console.log(chalk `{blue Done processing content. }`);
                 process.exit();
             }, 200);
         }
     }
-
-    var actions = [];
 
     progressBar = term.progressBar({
         width: 100,
@@ -453,42 +423,46 @@ function sync() {
         let currentRoute = (parent === '/') ? `/${route.path}` : `${parent}/${route.path}`;
         currentRoute = currentRoute.replace('//', '/');
         // process each language
-        for (lang of route.lang) {
+        for (let lang of route.lang) {
 
             var uri = `${config.sitecore.layoutServiceHost}/sitecore/api/layout/render/umbrella?item=${currentRoute}&sc_lang=${lang}&sc_apikey=${config.sitecore.apiKey}`;
 
-            request(uri, {
-                json: true
-            }, (err, res, body) => {
-                if (err) {
-                    return console.log(chalk `{red -error-${err}`);
-                }
-                task = thingsToDo.shift();
-                progressBar.startItem(task);
-
-                if (body && body.sitecore && body.sitecore.route) {
-                    var data = {
-                        id: body.sitecore.route.itemId
-                    };
-                    data.fields = processFields(body.sitecore.route.fields);
-                    data.placeholders = processPlaceHolders(body.sitecore.route.placeholders);
-                    if (!dryrun) {
-                        yaml.sync(`./data/routes${currentRoute}/${body.sitecore.route.itemLanguage}.yml`, data);
-                    }
-                } else {
-                    console.log(chalk `{red No route found for ${currentRoute}.}`);
-                }
-                // Finish the task in...
-                setTimeout(done.bind(null, task), 500 + Math.random() * 1200);
-            });
+            requestRoute(uri, currentRoute);
         }
 
         // process underlying routes
-        if (route && route.routes) {
-            for (subroute of route.routes) {
+        if (route.routes) {
+            for (let subroute of route.routes) {
                 processRoute(subroute, currentRoute);
             }
         }
+    }
+
+    const requestRoute = (uri, currentRoute) => {
+        request(uri, {
+            json: true
+        }, (err, res, body) => {
+            if (err) {
+                console.log(chalk `{red -error-${err}`);
+            }
+            task = thingsToDo.shift();
+            progressBar.startItem(task);
+
+            if (body && body.sitecore && body.sitecore.route) {
+                var data = {
+                    id: body.sitecore.route.itemId
+                };
+                data.fields = processFields(body.sitecore.route.fields);
+                data.placeholders = processPlaceHolders(body.sitecore.route.placeholders);
+                if (!dryrun) {
+                    yaml.sync(`./data/routes${currentRoute}/${body.sitecore.route.itemLanguage}.yml`, data);
+                }
+            } else {
+                console.log(chalk `{red No route found for ${currentRoute}.}`);
+            }
+            // Finish the task in...
+            setTimeout(done.bind(null, task), 500 + Math.random() * 1200);
+        });
     }
     processRoute(routes);
 }
@@ -550,9 +524,8 @@ d88_._ d8888_.._9888 _\\
             processComponentManifests();
         }
         if (options.content) {
-            logger.info(chalk `{bold.blue Sync Sitecore {yellow content} to your local machine}`);
             sync();
         }
     });
-    
+
 prog.parse(process.argv);
