@@ -1,0 +1,45 @@
+{
+  "name": "jss-umbrella",
+  "version": "1.0.3",
+  "main": "umbrella.js",
+  "bin": {
+    "umbrella": "umbrella.js"
+  },
+  "logo": { "url": "https://user-images.githubusercontent.com/6793205/57978516-853d5c80-7a0f-11e9-9253-92bbb58c137a.png" },
+  "homepage": "https://github.com/macaw-interactive/umbrella-for-sitecore-jss",
+  "bugs": {
+    "url": "https://github.com/macaw-interactive/umbrella-for-sitecore-jss/issues",
+    "email": "gary@wenneker.org"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GaryWenneker/jss-umbrella"
+  },
+  "description": "Umbrella for Sitecore JSS is a utility that synchronizes items from your Sitecore JSS to your local JSS development environment",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "plop": "plop"
+  },
+  "keywords": [
+    "sitecore",
+    "javascript",
+    "javascript services",
+    "jss"
+  ],
+  "author": {
+    "name": "Gary Wenneker",
+    "email": "gary@wenneker.org",
+    "url": "https://gary.wenneker.org/"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "request": "2.88.0",
+    "write-yaml": "1.0.0",
+    "terminal-kit": "1.28.0",
+    "shelljs": "0.8.3",
+    "chalk": "2.4.2",
+    "caporal": "1.2.0",
+    "plop": "2.3.0",
+    "node-plop": "0.18.0"
+  }
+}
