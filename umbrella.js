@@ -11,6 +11,7 @@ const prog = require('caporal');
 const nodePlop = require('node-plop');
 const Utils = require("./utils.js");
 const utils = new Utils();
+const formProcessor = require("./processors/forms.js");
 
 
 let scjssconfig = path.resolve(process.cwd(), `./scjssconfig.json`);
@@ -80,7 +81,7 @@ const getMetaData = () => {
                 reject(null);
             }
         });
-    })
+    });
 
 }
 const getRouteNames = (route) => {
@@ -98,6 +99,25 @@ const getRouteNames = (route) => {
     }
     return arr;
 }
+const getForms = (lang) => {
+    return new Promise(function (resolve, reject) {
+        var uri = `${config.sitecore.layoutServiceHost}/sitecore/api/layout/render/umbrella?form=1&item=/&sc_lang=${lang}&sc_apikey=${config.sitecore.apiKey}`;
+        request(uri, {
+            json: true
+        }, (err, res, body) => {
+            if (err) {
+                console.log(chalk `{red -error-${err}}`);
+                reject(err);
+            }
+            if (body && body.sitecore && body.sitecore.context) {
+                resolve(body.sitecore.context);
+            } else {
+                console.log(chalk `{red No route found for ${config.sitecore.layoutServiceHost} (${uri}).}`);
+                reject(null);
+            }
+        });
+    });
+}
 const saveFile = (e) => {
     let base64File = e.base64.split(';base64,').pop();
     let dataPath = './data';
@@ -112,8 +132,7 @@ const saveFile = (e) => {
         if (!fs.existsSync(mediaDir)) {
             shell.mkdir('-p', mediaDir);
         }
-    } catch (e) {
-    }
+    } catch (e) {}
 
     if (!dryrun) {
         if (fs.existsSync(outputFilePath)) {
@@ -243,6 +262,20 @@ const processComponent = (e) => {
         arr.push(comp);
     });
     return arr;
+}
+const processForms = (e) => {
+    getForms('nl-NL').then(data => {
+        if (data) {
+            console.log(chalk `{blue Processing metadata for} {white.bold ${data.forms.length}} {yellowBright form(s)}`);
+            if (data.forms.length > 0) {
+                data.forms.forEach(form => {
+                    formProcessor.process(form);
+                });
+            }            
+        }
+    }).catch(e => {
+        console.log(chalk `{red ERROR: ${e}}`);
+    })
 }
 
 const processPlaceholderManifests = (e) => {
@@ -498,6 +531,7 @@ d88_._ d8888_.._9888 _\\
     .option('-p, --placeholders', 'Sync all the placeholders from Sitecore', prog.BOOL, false)
     .option('-m, --manifests', 'Sync all the component manifests from Sitecore', prog.BOOL, false)
     .option('-c, --content', 'Sync all the content from your Sitecore JSS website', prog.BOOL, false)
+    .option('-f, --forms', 'Sync all the forms from your Sitecore JSS website', prog.BOOL, false)
     .option('-d, --dryrun', 'Sync but do not write to disk', prog.BOOL, false)
     .option('-x, --typescript', 'Creates manifests in TypeScript', prog.BOOL, false)
     .action(function (args, options, logger) {
@@ -525,6 +559,9 @@ d88_._ d8888_.._9888 _\\
         }
         if (options.content) {
             sync();
+        }
+        if (options.forms) {
+            processForms();
         }
     });
 
