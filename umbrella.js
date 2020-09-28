@@ -16,6 +16,7 @@ const formProcessor = require("./processors/forms.js");
 
 let scjssconfig = path.resolve(process.cwd(), `./scjssconfig.json`);
 let routeconfig = path.resolve(process.cwd(), `./routeconfig.json`);
+let appconfig = path.resolve(process.cwd(), `./src/temp/config.js`);
 
 var config, routes;
 
@@ -31,6 +32,13 @@ if (fs.existsSync(routeconfig)) {
 } else {
     console.log(chalk `{red ERROR: routeconfig.json not found.}`);
     process.exit();
+}
+
+if (fs.existsSync(appconfig)) {
+    app = require(appconfig);
+} else {
+    console.log(chalk `{orange WARNING: src/temp/config.json not found.}`);
+    return;
 }
 
 const CommonFieldTypes = {
@@ -67,6 +75,9 @@ const getUmbrella = (ext, generator) => {
 const getMetaData = () => {
     return new Promise(function (resolve, reject) {
         var uri = `${config.sitecore.layoutServiceHost}/sitecore/api/layout/render/umbrella?item=/&sc_lang=en&sc_apikey=${config.sitecore.apiKey}`;
+        if (app.jssAppName) {
+            uri += `&sc_site=${app.jssAppName}`;
+        }
         request(uri, {
             json: true
         }, (err, res, body) => {
@@ -102,6 +113,9 @@ const getRouteNames = (route) => {
 const getForms = (lang) => {
     return new Promise(function (resolve, reject) {
         var uri = `${config.sitecore.layoutServiceHost}/sitecore/api/layout/render/umbrella?form=1&item=/&sc_lang=${lang}&sc_apikey=${config.sitecore.apiKey}`;
+        if (app.jssAppName) {
+            uri += `&sc_site=${app.jssAppName}`;
+        }
         request(uri, {
             json: true
         }, (err, res, body) => {
