@@ -48,7 +48,7 @@
   "dependencies": {
     "request": "2.88.0",
     "write-yaml": "1.0.0",
-    "terminal-kit": "1.32.2",
+    "terminal-kit": "3.0.0",
     "shelljs": "0.8.3",
     "chalk": "3.0.0",
     "caporal": "1.3.0",
